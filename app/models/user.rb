@@ -40,27 +40,20 @@ class User < ActiveRecord::Base
 	#end
 
 	def self.find_for_oauth(auth, signed_in_resource = nil)
-    user = signed_in_resource ? signed_in_resource : User.find_or_create_by(uid: auth.uid, provider: auth.provider)
-
-    # Create the user if needed
+    user = signed_in_resource ? signed_in_resource : User.where(uid: auth.uid, provider: auth.provider).first
+    
     if user.nil?
-
-      # Get the existing user by email if the provider gives us a verified email.
-      # If no verified email was provided we assign a temporary email and ask the
-      # user to verify it on the next step via UsersController.finish_signup
-      email_is_verified = auth.info.email && (auth.info.verified || auth.info.verified_email)
-      email = auth.info.email if email_is_verified
-      user = User.where(:email => email).first if email
-
-      # Create the user if it's a new registration
+      email = auth.info.email 
+      user = User.where(:email => auth.info.email).first if email
+      
       if user.nil?
         user = User.new(
           name: auth.extra.raw_info.name,
-          #username: auth.info.nickname || auth.uid,
+          uid: auth.uid, 
+          provider: auth.provider,
           email: email ? email : "#{TEMP_EMAIL_PREFIX}-#{auth.uid}-#{auth.provider}.com",
           password: Devise.friendly_token[0,20]
         )
-        user.skip_confirmation!
         user.save!
       end
     end

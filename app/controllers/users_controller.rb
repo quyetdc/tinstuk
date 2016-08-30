@@ -2,7 +2,7 @@ class UsersController < ApplicationController
 
   #before_action :require_login
   before_action :authenticate_user!
-  before_action :set_user, only: [:edit, :profile, :update, :destroy, :get_email, :matches]
+  before_action :set_user, only: [:edit, :profile, :update, :destroy, :get_email, :matches, :finish_signup]
 
   def index
     if params[:id]
@@ -62,10 +62,9 @@ class UsersController < ApplicationController
   def finish_signup
     # authorize! :update, @user 
     if request.patch? && params[:user] #&& params[:user][:email]
-      if @user.update(user_params)
-        @user.skip_reconfirmation!
+      if @user.update(users_params)
         sign_in(@user, :bypass => true)
-        redirect_to @user, notice: 'Your profile was successfully updated.'
+        redirect_to root_path, notice: 'Your profile was successfully updated.'
       else
         @show_errors = true
       end

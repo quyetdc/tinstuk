@@ -48,12 +48,11 @@ group :development, :test do
 
 end
 
-
 gem 'bootstrap-sass'
 gem "autoprefixer-rails"
 gem 'font-awesome-sass'
 gem 'devise'
-gem 'omniauth'
+gem 'omniauth-oauth2', '~> 1.3.0'
 gem 'omniauth-twitter'
 gem 'omniauth-facebook'
 gem 'omniauth-linkedin'
