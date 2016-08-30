@@ -52,7 +52,11 @@ end
 gem 'bootstrap-sass'
 gem "autoprefixer-rails"
 gem 'font-awesome-sass'
+gem 'devise'
+gem 'omniauth'
+gem 'omniauth-twitter'
 gem 'omniauth-facebook'
+gem 'omniauth-linkedin'
 gem "paperclip"
 gem 'aws-sdk', '< 2.0'
 gem 'simple_form'

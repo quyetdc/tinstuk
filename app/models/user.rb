@@ -1,4 +1,10 @@
 class User < ActiveRecord::Base
+	TEMP_EMAIL_PREFIX = 'change@me'
+  TEMP_EMAIL_REGEX = /\Achange@me/
+  # Include default devise modules. Others available are:
+  # :confirmable, :lockable, :timeoutable and :omniauthable
+  devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :trackable, :validatable, :omniauthable
 
 	has_many :friendships, dependent: :destroy
 	has_many :inverse_friendships, class_name: "Friendship", foreign_key: "friend_id", dependent: :destroy
@@ -7,30 +13,63 @@ class User < ActiveRecord::Base
 					  :storage => :s3,
 					  :style => { :medium => "370x370", :thumb => "100x100" }
 
-    validates_attachment_content_type :avatar, :content_type => /\Aimage\/.*\Z/
+  validates_attachment_content_type :avatar, :content_type => /\Aimage\/.*\Z/
+  validates_format_of :email, :without => TEMP_EMAIL_REGEX, on: :update
 
-    default_scope { order('id DESC') }
+  default_scope { order('id DESC') }
 
-	def self.sign_in_from_facebook(auth)
-		find_by(provider: auth['provider'], uid: auth['uid'] ) || create_user_from_facebook(auth)
-	end
+	#def self.sign_in_from_facebook(auth)
+	#	find_by(provider: auth['provider'], uid: auth['uid'] ) || create_user_from_facebook(auth)
+	#end
 
-	def self.create_user_from_facebook(auth)
-		create(
+	#def self.create_user_from_facebook(auth)
+	#	create(
+  
+	#	avatar: process_uri(auth['info']['image'] + "?width=9999"),
+	#	email: auth['info']['email'],
+	#	provider: auth['provider'],
+	#	uid: auth['uid'],
+	#	name: auth['info']['name'],
+	#	gender: auth['extra']['raw_info']['gender'],
+	#	date_of_birth: auth['extra']['raw_info']['birthday'],
+	#	location: auth['info']['location'],
+	#	bio: auth['extra']['raw_info']['bio']
 
-		avatar: process_uri(auth['info']['image'] + "?width=9999"),
-		email: auth['info']['email'],
-		provider: auth['provider'],
-		uid: auth['uid'],
-		name: auth['info']['name'],
-		gender: auth['extra']['raw_info']['gender'],
-		date_of_birth: auth['extra']['raw_info']['birthday'],
-		location: auth['info']['location'],
-		bio: auth['extra']['raw_info']['bio']
 
+	#	)
+	#end
 
-		)
-	end
+	def self.find_for_oauth(auth, signed_in_resource = nil)
+    user = signed_in_resource ? signed_in_resource : User.find_or_create_by(uid: auth.uid, provider: auth.provider)
+
+    # Create the user if needed
+    if user.nil?
+
+      # Get the existing user by email if the provider gives us a verified email.
+      # If no verified email was provided we assign a temporary email and ask the
+      # user to verify it on the next step via UsersController.finish_signup
+      email_is_verified = auth.info.email && (auth.info.verified || auth.info.verified_email)
+      email = auth.info.email if email_is_verified
+      user = User.where(:email => email).first if email
+
+      # Create the user if it's a new registration
+      if user.nil?
+        user = User.new(
+          name: auth.extra.raw_info.name,
+          #username: auth.info.nickname || auth.uid,
+          email: email ? email : "#{TEMP_EMAIL_PREFIX}-#{auth.uid}-#{auth.provider}.com",
+          password: Devise.friendly_token[0,20]
+        )
+        user.skip_confirmation!
+        user.save!
+      end
+    end
+    user
+  end
+
+  def email_verified?
+    self.email && self.email !~ TEMP_EMAIL_REGEX
+  end
 
 	# Friendship Methods
 	def request_match(user2)
