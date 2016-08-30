@@ -1,19 +1,20 @@
 class UsersController < ApplicationController
 
-  before_action :require_login
-  before_action :set_user, only: [:edit, :profile, :update, :destroy, :get_email, :matches]
+  #before_action :require_login
+  before_action :authenticate_user!
+  before_action :set_user, only: [:edit, :profile, :update, :destroy, :get_email, :matches, :finish_signup]
 
   def index
-      if params[:id]
-        @users = User.gender(current_user).not_me(current_user).where('id < ?', params[:id]).limit(10) - current_user.matches(current_user)
-      else
-        @users = User.gender(current_user).not_me(current_user).limit(10) - current_user.matches(current_user)
-      end
+    if params[:id]
+      @users = User.gender(current_user).not_me(current_user).where('id < ?', params[:id]).limit(10) - current_user.matches(current_user)
+    else
+      @users = User.gender(current_user).not_me(current_user).limit(10) - current_user.matches(current_user)
+    end
 
-      respond_to do |format|
-        format.html
-        format.js
-      end
+    respond_to do |format|
+      format.html
+      format.js
+    end
 
   end
 
@@ -58,6 +59,17 @@ class UsersController < ApplicationController
     end
   end
 
+  def finish_signup
+    # authorize! :update, @user 
+    if request.patch? && params[:user] #&& params[:user][:email]
+      if @user.update(users_params)
+        sign_in(@user, :bypass => true)
+        redirect_to root_path, notice: 'Your profile was successfully updated.'
+      else
+        @show_errors = true
+      end
+    end
+  end
 
   private
 
@@ -66,7 +78,9 @@ class UsersController < ApplicationController
   end
 
   def users_params
-    params.require(:user).permit(:interest, :bio, :avatar, :location, :date_of_birth)
+    accessible = [ :name, :email, :interest, :bio, :avatar, :location, :date_of_birth ] # extend with your own params
+    accessible << [ :password, :password_confirmation ] unless params[:user][:password].blank?
+    params.require(:user).permit(accessible)
   end
 
 end

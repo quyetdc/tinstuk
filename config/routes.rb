@@ -1,5 +1,8 @@
 Rails.application.routes.draw do
   
+  #devise_for :users
+  devise_for :users, :controllers => { omniauth_callbacks: 'omniauth_callbacks' }
+
   root 'home#index'
   
   resources :users do
@@ -9,8 +12,10 @@ Rails.application.routes.draw do
     end
   end
   
-  get   'auth/facebook/callback', to: "sessions#create"
-  match '/sign_out', to: "sessions#destroy", via: :delete
+  match '/users/:id/finish_signup' => 'users#finish_signup', via: [:get, :patch], :as => :finish_signup
+  
+  #get   'auth/facebook/callback', to: "sessions#create"
+  #match '/sign_out', to: "sessions#destroy", via: :delete
 
   post   'create_friendship' => "friendships#create"
   delete 'delete_friendship' => "friendships#destroy"
